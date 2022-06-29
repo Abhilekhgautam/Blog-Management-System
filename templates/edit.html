@@ -1,0 +1,23 @@
+   <!Doctype html>
+   <html lang = "en">
+   
+       <head>
+   
+         <link rel = "stylesheet" href = "../static/css/edit.css">
+       </head>
+   
+       <body>
+  
+		   <form method = "POST" action = "/update/{{.ID}}" id = "form" class = "add">
+           <h1>Editing ID {{.ID}}</h1>
+              <label for="title">Title:</label>
+              <input name = "title" id ="title" value = {{.Title}}>
+              <label for="description">Description:</label>
+              <textarea name = "description" id ="description">{{.Description}}</textarea>
+              <label for="author">Author:</label>
+              <input name="author" id ="author" value = {{.Author}}>
+              <button id = "submit" class = "btn" type = "submit">Update</button>
+         </form>
+      </body>
+  </html>
+

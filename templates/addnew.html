@@ -1,0 +1,22 @@
+    <!DOCTYPE html>
+     <html lang="en">
+     <head>
+         <meta charset="UTF-8">
+         <link rel="stylesheet" href="../static/css/addnew.css">
+         <title>Admin Panel</title>
+     </head>
+     <body>
+         <form id = "form" class="add" method = "POST" action = "/postblog">
+            <label for="title">Title:</label>
+            <input name = "title" id ="title">
+            <label for="description">Description:</label>
+            <textarea name = "description" id ="description"></textarea>
+            <label for="clickbait">Clickbait:(255 characters only)</label>
+            <input name = "clickbait" id ="clickbait">
+            <label for="author">Author:</label>
+            <input name="author" id ="author">
+            <button id = "submit" class = "btn" type = "submit">Submit</button>
+        </form>
+    </body>
+    </html>
+

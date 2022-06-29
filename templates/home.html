@@ -1,0 +1,33 @@
+     <!DOCTYPE html>
+      <html lang="en">
+         <head>
+             <meta charset="UTF-8">
+             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+             <meta http-equiv="X-UA-Compatible" content="ie=edge">
+			 <link rel="stylesheet" href="../static/css/home.css">
+             <link rel="preconnect" href="https://fonts.googleapis.com">
+             <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Open+Sans&family=Rubik:wght@500&display=swap" rel="stylesheet">
+           <title>Let Me Explain</title>
+       </head>
+  
+      <body>
+         <header class="heading">
+                 <h1 class="brand-name">Lemme Explain</h1>
+         </header>
+  
+         <main class = "blog-index">
+			 {{range .}}
+             <div id="blog-container">
+                 <div class = "blog-items">
+                   <a class = "title" href = "/view/{{.Title}}">{{.Title}}</a>
+                   <p class = "date">{{.Published_date}}</p>
+                   <p class = "author">{{.Author}}</p>
+                   <p class = "description">{{.Description}}</p>
+                 </div>
+             </div>
+			 {{end}}
+         </main>
+      </body>
+    </html>
+

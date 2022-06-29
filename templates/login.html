@@ -1,0 +1,39 @@
+ <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta http-equiv="X-UA-Compatible" content="ie=edge">
+          <link rel="stylesheet" href="../static/css/login.css">
+          <title>Login</title>
+      </head>
+     <body>
+    <div class="BoxContainer">
+  
+        <div class="FormJumbotron">
+            <h1 class = "col-wh main-heading">Admin Login!</h1>
+            <p class = "col-wh" >Your are the King Here!</p>
+        </div>
+  
+        <div class="FormContainer">
+            <div class="Headline">
+                <p class = "Heading">Login To Continue.</p>
+            </div>
+            <div>
+                <p class="Message"></p>
+            </div>
+            <form action = "/signin" method = "post">
+                <div class="InputField"><input type = "text" placeholder = "username"  name = "username" /></div>
+                <div class="InputField"><input type = "password" placeholder = "Password" name = "password" /></div>
+  
+                <button class="SubmitButton" type="submit">Login</button>
+            </form>
+            <br/>
+            <hr/>
+        </div>
+  
+    </div>
+  
+    </body>
+    </html>
+

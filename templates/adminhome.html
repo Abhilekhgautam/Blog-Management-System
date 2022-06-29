@@ -1,0 +1,31 @@
+   <!Doctype html>
+   <html lang = "en">
+   
+       <head>
+   
+         <link rel = "stylesheet" href = "../static/css/home.css">
+       </head>
+   
+       <body>
+           <header class="heading">
+               <h1 class="brand-name">Lemme Explain</h1>
+            </header>
+            <main class = "blog-index">
+				<a href = "/logout">Logout</a>
+				<a href = "/add">Add New</a>
+                <div id="blog-container">
+                    {{range .}}
+                    <div class = "blog-items">
+                     <a class = "title" href = "/view/{{.Title}}">{{.Title}}</a>
+                     <p class = "date">{{.Published_date}}</p>
+                     <p class = "author">{{.Author}}</p>
+                     <p class = "description">{{.Description}}</p>
+  
+                     <a href = "/edit/{{.ID}}" >Edit</a>
+                     <a href = "/delete/{{.ID}}">Delete</a>
+                   </div>
+                   {{end}}
+               </div>
+           </main>
+      </body>
+  </html>
