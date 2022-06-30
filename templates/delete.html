@@ -1,0 +1,26 @@
+  <!DOCTYPE html>
+   <html> 
+       <head>
+   
+          <link rel = "stylesheet" href = "../static/css/delete.css">
+       </head>
+   
+       <body>
+   
+         <div class = "card-container">
+   
+			 <form method = "POST" action = "/delete/{{.}}" class = "card">
+   
+			<h3>Are you Sure you want to delete the blog with id: {{.}}?</h3>
+  
+			<button type = "submit" >Delete</button>
+          <a href = "/admin">Cancel</a>
+  
+        </form>
+      </div>
+  
+  
+  
+      </body>
+  
+  </html>

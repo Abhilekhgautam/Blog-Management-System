@@ -22,7 +22,7 @@ type Blog struct{
   Author string `json:"author"`
   Description string `json:description`
   Published_date string `json:"published_date"`
-
+  Clickbait      string  `json: "clickbait"`
 
 }
 
@@ -38,7 +38,7 @@ type Secret struct{
 //global template variable
 
 var templates = template.Must(template.ParseFiles("./templates/home.html", "./templates/addnew.html",
-"./templates/adminhome.html", "./templates/edit.html","./templates/login.html"))
+"./templates/adminhome.html", "./templates/edit.html","./templates/login.html","./templates/delete.html"))
 
 // connect to the database
 
@@ -89,7 +89,7 @@ func getHome(w http.ResponseWriter, r *http.Request){
   
       var blog Blog
   
-         if err := rows.Scan( &blog.ID, &blog.Title, &blog.Description, &blog.Author, &blog.Published_date); err != nil{
+         if err := rows.Scan( &blog.ID, &blog.Title, &blog.Description, &blog.Author, &blog.Published_date, &blog.Clickbait); err != nil{
   
              log.Fatal("Unable to scan into slice",err)
   
@@ -177,11 +177,11 @@ func postBlogs(w http.ResponseWriter, r *http.Request){
 	description      := r.PostForm.Get("description")
 	author           := r.PostForm.Get("author")
 	clickbait        := r.PostForm.Get("clickbait")
-	published_date   := "Jun 27, 2022"
+	published_date   := time.Now().Format("2006-Jan-02")
 
 	//check if all the input fields are filled
 
-	if len(title) == 0 || len(description) == 0 || len(author) == 0 || len(clickbait) == 0 || len(published_date) == 0{
+	if len(title) == 0 || len(description) == 0 || len(author) == 0 || len(clickbait) == 0{
 
 
 	}
@@ -200,7 +200,7 @@ func postBlogs(w http.ResponseWriter, r *http.Request){
   
       // insert blog to db
       // execute sql query
-       _, err = db.Exec("Insert into blogpost ( title, description, author, published_date) values(?,?,?,?)", title, description, author, published_date)
+    _, err = db.Exec("Insert into blogpost ( title, description, author, published_date, clickbait) values(?,?,?,?,?)", title, description, author, published_date,clickbait)
   
       if err != nil{
   
@@ -256,7 +256,7 @@ func editBlogs(w http.ResponseWriter, r *http.Request){
   
       var blog Blog
   
-      if err := row.Scan(&blog.ID, &blog.Title, &blog.Description, &blog.Author, &blog.Published_date); err != nil {
+      if err := row.Scan(&blog.ID, &blog.Title, &blog.Description, &blog.Author, &blog.Published_date, &blog.Clickbait); err != nil {
           if err == sql.ErrNoRows {
               log.Fatal("No such row found with given id:",id)
           } else {
@@ -297,7 +297,7 @@ func updateBlogs(w http.ResponseWriter, r *http.Request){
 
     connectDB();
 
-	_, err = db.Query("select * from session where value = ?", cookie.Value)
+	_, err = db.Query("select * from session where password = ?", cookie.Value)
 
 	if err != nil{
 
@@ -322,9 +322,9 @@ func updateBlogs(w http.ResponseWriter, r *http.Request){
 	 title            := r.PostForm.Get("title")
 	 description      := r.PostForm.Get("description")
 	 author           := r.PostForm.Get("author")
-	 //clickbait        := r.PostForm.Get("clickbait")
+	 clickbait        := r.PostForm.Get("clickbait")
 
-	 if len(title) == 0 || len(description) == 0 || len(author) == 0{
+	 if len(title) == 0 || len(description) == 0 || len(author) == 0 || len(clickbait) == 0{
 
        // TODO:set error message of all fields required
 
@@ -340,7 +340,7 @@ func updateBlogs(w http.ResponseWriter, r *http.Request){
 //	 }//
 
 
-	  _, err = db.Exec("Update blogpost set description = ? where id = ? ",description, id)
+	  _, err = db.Exec("Update blogpost set title = ? ,description = ?, clickbait = ?, author = ? where id = ? ", title, description, clickbait, author, id)
    
      if err != nil{
 
@@ -351,7 +351,7 @@ func updateBlogs(w http.ResponseWriter, r *http.Request){
        fmt.Println("Data updated successfully")
       // everything is fine
 
-	  http.Redirect(w, r, "/admin", http.StatusFound)
+	  http.Redirect(w, r, "/admin", 302)
 
    }
 }
@@ -445,7 +445,7 @@ func getAdminHome(w http.ResponseWriter, r *http.Request){
   
       var blog Blog
   
-         if err = rows.Scan( &blog.ID, &blog.Title, &blog.Description, &blog.Author, &blog.Published_date); err != nil{
+         if err = rows.Scan( &blog.ID, &blog.Title, &blog.Description, &blog.Author, &blog.Published_date, &blog.Clickbait); err != nil{
   
              log.Fatal("Unable to scan into slice",err)
   
@@ -626,6 +626,68 @@ func logOut(w http.ResponseWriter, r *http.Request){
 
 }
 
+func getDelete(w http.ResponseWriter, r *http.Request){
+
+	fmt.Println("Getting you to delete home page")
+
+    _, cookierr := r.Cookie("lemme-explain-cookie")
+	if cookierr != nil{
+
+		if cookierr == http.ErrNoCookie{
+            fmt.Println("No cookie found")
+            http.Redirect(w, r, "/login", 302)
+            return;
+		} else {
+
+            log.Fatal("Some cookie error")
+
+		}
+      }
+
+	  id := r.URL.Path[len("/delete/"):]
+
+	  fmt.Println("will render delete file soon")
+	  err := templates.ExecuteTemplate(w, "delete.html", id)
+
+      if err != nil{
+
+        log.Fatal("Unable to render provided template")
+
+      }
+}
+
+func deleteBlog(w http.ResponseWriter, r *http.Request){
+
+	fmt.Println("Looking to delete a blog")
+
+    _ , cookierr := r.Cookie("lemme-explain-cookie")
+	if cookierr != nil{
+
+		if cookierr == http.ErrNoCookie{
+            fmt.Println("No cookie found")
+            http.Redirect(w, r, "/login", 302)
+            return;
+		} else {
+
+            log.Fatal("Some cookie error")
+
+		}
+	}
+
+		id := r.URL.Path[len("/delete/"):]
+
+		_ , err := db.Exec("delete from blogpost where id = ?", id)
+
+       if err != nil{
+
+        log.Fatal("Unable to delete the blog")
+
+	   }
+
+	   http.Redirect(w, r, "/admin", 302)
+       return
+}
+
 func main(){
 
    r := mux.NewRouter()
@@ -636,11 +698,14 @@ func main(){
    r.HandleFunc("/admin",     getAdminHome)
    r.HandleFunc("/login",     getLogin)
    r.HandleFunc("/logout",    logOut)
+   r.HandleFunc("/delete/{id}",    getDelete).Methods("GET")
 
    r.HandleFunc("/update/{id}", updateBlogs).Methods("POST")
    r.HandleFunc("/postblog", postBlogs).Methods("POST")
    r.HandleFunc("/signin",    login).Methods("POST")
 
+
+   r.HandleFunc("/delete/{id}", deleteBlog).Methods("POST")
    // serve static files
    fs := http.FileServer(http.Dir("./static/css/"))
    r.PathPrefix("/static/css/").Handler(http.StripPrefix("/static/css", fs))

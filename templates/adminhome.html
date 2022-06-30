@@ -7,19 +7,52 @@
        </head>
    
        <body>
+		   <style>
+
+             .option{
+
+				 display: flex !important;
+				 justify-content: flex-end !important;
+			 }
+
+			 .btn-lookalike{
+
+                padding: 10px;
+                color  : white;
+				cursor : pointer;
+                margin : 5px;
+			 }
+
+			 .bg-blue{
+
+                background:#0069d9;
+
+			 }
+
+			 .bg-red{
+
+				 background: #682333
+
+			 }
+
+
+
+		   </style>
            <header class="heading">
                <h1 class="brand-name">Lemme Explain</h1>
             </header>
             <main class = "blog-index">
-				<a href = "/logout">Logout</a>
-				<a href = "/add">Add New</a>
+				<div class = "option">
+				  <a href = "/logout" class = "btn-lookalike bg-red">Logout</a>
+				  <a href = "/add" class = "btn-lookalike bg-blue">Add New</a>
+				</div>
                 <div id="blog-container">
                     {{range .}}
                     <div class = "blog-items">
-                     <a class = "title" href = "/view/{{.Title}}">{{.Title}}</a>
+                     <a class = "title" href = "/edit/{{.ID}}">{{.Title}}</a>
                      <p class = "date">{{.Published_date}}</p>
                      <p class = "author">{{.Author}}</p>
-                     <p class = "description">{{.Description}}</p>
+                     <p class = "description">{{.Clickbait}}</p>
   
                      <a href = "/edit/{{.ID}}" >Edit</a>
                      <a href = "/delete/{{.ID}}">Delete</a>
