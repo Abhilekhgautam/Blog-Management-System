@@ -13,6 +13,7 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", blog.GetHome)
+	r.HandleFunc("/view/{id}", blog.ViewBlog)
 	r.HandleFunc("/add", blog.AddBlogs)
 	r.HandleFunc("/edit/{id}", blog.EditBlogs)
 	r.HandleFunc("/admin", blog.GetAdminHome)
