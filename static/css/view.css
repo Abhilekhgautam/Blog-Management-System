@@ -1,0 +1,46 @@
+*{
+    color: black;
+}
+
+body{
+    background: url("https://img.freepik.com/free-vector/neutral-soft-abstract-watercolor-background_53876-97742.jpg?w=2000");
+}
+
+.title{
+    font-family: 'Alfa Slab One', cursive;
+    color: Red;
+}
+.container{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.blog-desc{
+    align-self: center;
+    justify-self: center;
+}
+.blog-content{
+    align-self: center;
+    width: 60%;
+}
+.blog-container{
+    border: 1px solid gray;
+    background-color: #1b1b32;
+}
+pre {
+    overflow-x: auto;
+    white-space: pre-wrap;
+    white-space: -moz-pre-wrap;
+    white-space: -o-pre-wrap;
+    word-wrap: break-word;
+    font-size: 20px;
+    color: white !important;
+    padding: 2px;
+}
+
+@media (max-width:500px) {
+    .blog-content{
+        width: 100%;
+    }
+}
