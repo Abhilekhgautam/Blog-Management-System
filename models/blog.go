@@ -85,9 +85,20 @@ func PostBlogs(w http.ResponseWriter, r *http.Request) {
 
 	//check if all the input fields are filled
 	if len(title) == 0 || len(description) == 0 || len(author) == 0 || len(clickbait) == 0 {
+		errMsg := "All the input fields are required"
+		err = templates.ExecuteTemplate(w, "addnew.html", errMsg)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
 	}
 	// check if clickbait is maximum of 255 characters
-	if len(clickbait) >= 255 {
+	if len(clickbait) > 255 || len(title) > 255 || len(author) > 255 {
+		errMsg := "Fields except description cannot be more than 255 characters"
+		err = templates.ExecuteTemplate(w, "addnew.html", errMsg)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}
 	// if everything is validated insert into database
 	db.ConnectDB()
@@ -166,14 +177,6 @@ func UpdateBlogs(w http.ResponseWriter, r *http.Request) {
 	author := r.PostForm.Get("author")
 	clickbait := r.PostForm.Get("clickbait")
 
-	if len(title) == 0 || len(description) == 0 || len(author) == 0 || len(clickbait) == 0 {
-
-		// TODO:set error message of all fields required
-	}
-	//check if clickbait is at most 255 characters long
-	//if len(clickbait) > 255{
-	// TODO:set err message
-	//	 }
 	_, err = db.Db.Exec("Update blogpost set title = ? ,description = ?, clickbait = ?, author = ? where id = ? ", title, description, clickbait, author, id)
 	if err != nil {
 		log.Fatal("Unable to update with given data")
