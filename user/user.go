@@ -65,6 +65,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	if err := row.Scan(&sec.Username, &sec.Password); err != nil {
 		if err == sql.ErrNoRows {
 			// return invalid username or password error
+			errMsg := "Invalid username or Password."
+			err = templates.ExecuteTemplate(w, "login.html", errMsg)
+			if err != nil {
+				log.Fatal("Unable to render provided template")
+			}
 		} else {
 			log.Fatal("Unable to Scan")
 		}
