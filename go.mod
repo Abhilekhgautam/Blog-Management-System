@@ -1,4 +1,4 @@
-module projectOne
+module projectOne/blog
 
 go 1.18
 
