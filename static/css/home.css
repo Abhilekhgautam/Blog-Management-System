@@ -23,13 +23,12 @@
     flex-direction: column;
     margin-top: 25px;
     text-align: left;
-
 }
 .blog-items{
     padding: 5%;
     margin-bottom: 8px;
     margin-top: 8px;
-    width: 100%;
+    min-width: 100%;
 }
 .title{
     font-family: 'Open Sans', sans-serif;
