@@ -1,43 +1,41 @@
    <!Doctype html>
-   <html lang = "en">
-   
+   <html lang = "en"> 
        <head>
-   
          <link rel = "stylesheet" href = "../static/css/home.css">
        </head>
    
        <body>
-		   <style>
+	  <style>
 
              .option{
-				 display: flex !important;
-				 justify-content: flex-end !important;
-			 }
+		display: flex !important;
+		justify-content: flex-end !important;
+		}
 
-			 .btn-lookalike{
+	     .btn-lookalike{
                 padding: 10px;
                 color  : white;
-				cursor : pointer;
+		cursor : pointer;
                 margin : 5px;
-			 }
+	       }
 
-			 .bg-blue{
+	      .bg-blue{
                 background:#0069d9;
-			 }
+		}
 
-			 .bg-red{
-				 background: #682333
-			 }
+		.bg-red{
+		 background: #682333
+		}
 
-		   </style>
-           <header class="heading">
-               <h1 class="brand-name">Lemme Explain</h1>
-            </header>
+	  </style>
+        <header class="heading">
+           <h1 class="brand-name">Lemme Explain</h1>
+        </header>
             <main class = "blog-index">
-				<div class = "option">
-				  <a href = "/logout" class = "btn-lookalike bg-red">Logout</a>
-				  <a href = "/add" class = "btn-lookalike bg-blue">Add New</a>
-				</div>
+		<div class = "option">
+		  <a href = "/logout" class = "btn-lookalike bg-red">Logout</a>
+		  <a href = "/add" class = "btn-lookalike bg-blue">Add New</a>
+		</div>
                 <div id="blog-container">
                     {{range .}}
                     <div class = "blog-items">
