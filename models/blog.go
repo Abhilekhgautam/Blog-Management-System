@@ -2,7 +2,6 @@ package blog
 
 import (
 	"database/sql"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -15,12 +14,12 @@ type Blog struct {
 	Title         string `json:"title"`
 	Author        string `json:"author"`
 	Description   string `json:"description"`
-	PublishedDate string `json:"published_date"`
 	Clickbait     string `json:"clickbait"`
+	PublishedDate string `json:"published_date"`
 }
 
 var templates = template.Must(template.ParseFiles("./templates/home.html", "./templates/addnew.html",
-	"./templates/adminhome.html", "./templates/edit.html", "./templates/delete.html"))
+	"./templates/adminhome.html", "./templates/edit.html", "./templates/delete.html","./templates/view.html"))
 
 // GetHome - loads all the blog (for client)
 func GetHome(w http.ResponseWriter, r *http.Request) {
@@ -33,13 +32,12 @@ func GetHome(w http.ResponseWriter, r *http.Request) {
 	var blogs []Blog
 	for rows.Next() {
 		var blog Blog
-		if err := rows.Scan(&blog.ID, &blog.Title, &blog.Description, &blog.Author, &blog.PublishedDate, &blog.Clickbait); err != nil {
+		if err := rows.Scan(&blog.ID, &blog.Title, &blog.Author, &blog.Description, &blog.Clickbait, &blog.PublishedDate); err != nil {
 			log.Fatal("Unable to scan into slice", err)
 		}
 		// add element to blogs slice
 		blogs = append(blogs, blog)
 	}
-	fmt.Println(blogs)
 	err = templates.ExecuteTemplate(w, "home.html", blogs)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -51,7 +49,6 @@ func AddBlogs(w http.ResponseWriter, r *http.Request) {
 	cookie, cookierr := r.Cookie("lemme-explain-cookie")
 	if cookierr != nil {
 		if cookierr == http.ErrNoCookie {
-			fmt.Println("No cookie found")
 			http.Redirect(w, r, "/login", 302)
 			return
 		} else {
@@ -69,10 +66,9 @@ func AddBlogs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
-
+// this is a post request
 // PostBlogs - post blogs to the db
 func PostBlogs(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("accepted a post request")
 	err := r.ParseForm()
 	if err != nil {
 		log.Fatal("Unable to parse Form")
@@ -115,11 +111,9 @@ func PostBlogs(w http.ResponseWriter, r *http.Request) {
 // EditBlogs - this is a get request, renders input fields to edit blogs
 func EditBlogs(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println("Trying to get edit blog")
 	cookie, cookierr := r.Cookie("lemme-explain-cookie")
 	if cookierr != nil {
 		if cookierr == http.ErrNoCookie {
-			fmt.Println("No cookie found")
 			http.Redirect(w, r, "/login", 302)
 			return
 		} else {
@@ -136,7 +130,7 @@ func EditBlogs(w http.ResponseWriter, r *http.Request) {
 
 	row := db.Db.QueryRow("select * from blogpost where id = ?", id)
 	var blog Blog
-	if err := row.Scan(&blog.ID, &blog.Title, &blog.Description, &blog.Author, &blog.PublishedDate, &blog.Clickbait); err != nil {
+	if err := row.Scan(&blog.ID, &blog.Title, &blog.Author, &blog.Description, &blog.Clickbait, &blog.PublishedDate); err != nil {
 		if err == sql.ErrNoRows {
 			log.Fatal("No such row found with given id:", id)
 		} else {
@@ -151,7 +145,7 @@ func EditBlogs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// UpdateBlogs - this is a post request, adds the blog to the database.
+// UpdateBlogs - this is a post request, updates the blog to the database.
 func UpdateBlogs(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("lemme-explain-cookie")
 	if err != nil || cookie == nil {
@@ -165,7 +159,6 @@ func UpdateBlogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := r.URL.Path[len("/update/"):]
-	fmt.Println("Update id :", id)
 	err = r.ParseForm()
 	if err != nil {
 		log.Fatal("Unable to parse form data")
@@ -187,10 +180,8 @@ func UpdateBlogs(w http.ResponseWriter, r *http.Request) {
 
 //GetAdminHome - this is a get request, loads the admin home page
 func GetAdminHome(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Trying to load admin home page")
 	cookie, err := r.Cookie("lemme-explain-cookie")
 	if err != nil || cookie == nil {
-		fmt.Println("Redirecting cookie might be nil")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
@@ -198,7 +189,6 @@ func GetAdminHome(w http.ResponseWriter, r *http.Request) {
 	_, err = db.Db.Query("select * from session where password = ?", cookie.Value)
 	// if cookie value does not match, redirect to login..
 	if err != nil {
-		fmt.Println("redirecting ...")
 		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
 		return
 	}
@@ -211,7 +201,7 @@ func GetAdminHome(w http.ResponseWriter, r *http.Request) {
 	var blogs []Blog
 	for rows.Next() {
 		var blog Blog
-		if err = rows.Scan(&blog.ID, &blog.Title, &blog.Description, &blog.Author, &blog.PublishedDate, &blog.Clickbait); err != nil {
+		if err = rows.Scan(&blog.ID, &blog.Title, &blog.Author, &blog.Description, &blog.Clickbait, &blog.PublishedDate); err != nil {
 			log.Fatal("Unable to scan into slice", err)
 		}
 		// add element to blogs slice
@@ -225,11 +215,9 @@ func GetAdminHome(w http.ResponseWriter, r *http.Request) {
 
 // GetDelete - this is a get request, renders delete option for user confirmation.
 func GetDelete(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Getting you to delete home page")
 	_, cookierr := r.Cookie("lemme-explain-cookie")
 	if cookierr != nil {
 		if cookierr == http.ErrNoCookie {
-			fmt.Println("No cookie found")
 			http.Redirect(w, r, "/login", 302)
 			return
 		} else {
@@ -237,7 +225,6 @@ func GetDelete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	id := r.URL.Path[len("/delete/"):]
-	fmt.Println("will render delete file soon")
 	err := templates.ExecuteTemplate(w, "delete.html", id)
 	if err != nil {
 		log.Fatal("Unable to render provided template")
@@ -249,7 +236,6 @@ func DeleteBlog(w http.ResponseWriter, r *http.Request) {
 	_, cookierr := r.Cookie("lemme-explain-cookie")
 	if cookierr != nil {
 		if cookierr == http.ErrNoCookie {
-			fmt.Println("No cookie found")
 			http.Redirect(w, r, "/login", 302)
 			return
 		} else {
@@ -263,4 +249,23 @@ func DeleteBlog(w http.ResponseWriter, r *http.Request) {
 	}
 	http.Redirect(w, r, "/admin", 302)
 	return
+}
+
+//viewBlog - this is a get request.
+// views the content of blog
+func ViewBlog(w http.ResponseWriter, r *http.Request){
+	id := r.URL.Path[len("/view/"):]
+	db.ConnectDB()
+	rows:= db.Db.QueryRow("select * from blogpost where id = ?", id)
+	var blog Blog
+
+	if err := rows.Scan(&blog.ID, &blog.Title, &blog.Author, &blog.Description, &blog.Clickbait, &blog.PublishedDate); err != nil {
+		log.Fatal("Unable to scan into slice", err)
+	}
+	
+	err := templates.ExecuteTemplate(w, "view.html", blog)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
 }
