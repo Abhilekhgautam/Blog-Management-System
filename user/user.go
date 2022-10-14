@@ -1,5 +1,12 @@
 package user
 
+/*
+
+This package proviedes facilities related to the user (admin) of the site.
+
+
+*/
+
 import (
 	"database/sql"
 	"fmt"
