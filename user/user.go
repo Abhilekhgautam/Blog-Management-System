@@ -31,9 +31,26 @@ func RandStr() string {
 	return string(str)
 }
 
+// this denotes the secret datas related to a user.
 type Secret struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+// this denotes the actual user information
+type User struct{
+	Username string  `json:username`
+	Email    string  `json:email`
+	Password string  `json:password`
+    BlogTitle string `json:blogTitle`
+}
+// Get signup form for user.
+// this is a get request from the user.
+func GetSignup(w http.ResponseWriter, r *http.Request){
+	err := templates.ExecuteTemplate(w,"signup.html", nil)
+	if err != nil{
+		log.Fatal("Unable to render provided template")
+	}
 }
 
 // GetLogin - this is a get request, renders login form for the user.
