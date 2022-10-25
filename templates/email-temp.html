@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+ <body>
+    <div>
+        <h4>Hi <b> {{.Username}} </b></h4>
+
+        <p>
+            We recieved a registration request for Smart Blogger with this email.Click the given link to confirm:
+        </p>
+        <a href="https://localhost:8080/confirm_email?token={{.Token}}">localhost:8080/confirm_email?token={{.Token}}</a>
+
+        The mail will expire in 2 days.
+        If this was not you, you can safely ignore this mail.
+    </div>
+ </body>
+</html>
