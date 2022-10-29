@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 	"projectOne/blog/db"
+	"strings"
 	"time"
+	"projectOne/blog/user"
 )
 
 type Blog struct {
@@ -19,12 +21,22 @@ type Blog struct {
 }
 
 var templates = template.Must(template.ParseFiles("./templates/home.html", "./templates/addnew.html",
-	"./templates/adminhome.html", "./templates/edit.html", "./templates/delete.html","./templates/view.html"))
+	"./templates/adminhome.html", "./templates/edit.html", "./templates/delete.html","./templates/view.html","./templates/chose-title.html"))
 
 // GetHome - loads all the blog (for client)
 func GetHome(w http.ResponseWriter, r *http.Request) {
 	db.ConnectDB()
-	rows, err := db.Db.Query("select * from blogpost order by id desc")
+	title := r.URL.Path
+	spaced_title := strings.Replace(title,"-"," ", -1)
+	var username string
+	if err := db.Db.QueryRow("Select username from User where blogTitle = ?", spaced_title).Scan(&username); err != nil{
+      if err == sql.ErrNoRows{
+		// todo: Send a 404...
+	  } else{
+		log.Fatal("Sth went wrong", err)
+	  }
+	}
+	rows, err := db.Db.Query("select * from blogpost where author = ? order by id desc", username)
 	if err != nil {
 		log.Fatal("Error while retrieving data: ", err)
 	}
@@ -35,7 +47,7 @@ func GetHome(w http.ResponseWriter, r *http.Request) {
 		if err := rows.Scan(&blog.ID, &blog.Title, &blog.Author, &blog.Description, &blog.Clickbait, &blog.PublishedDate); err != nil {
 			log.Fatal("Unable to scan into slice", err)
 		}
-		// add element to blogs slice
+		// adds element to blogs slice
 		blogs = append(blogs, blog)
 	}
 	err = templates.ExecuteTemplate(w, "home.html", blogs)
@@ -46,21 +58,23 @@ func GetHome(w http.ResponseWriter, r *http.Request) {
 
 // AddBlogs - this is a get request, renders a template with form field to add new blogs.
 func AddBlogs(w http.ResponseWriter, r *http.Request) {
-	cookie, cookierr := r.Cookie("lemme-explain-cookie")
-	if cookierr != nil {
-		if cookierr == http.ErrNoCookie {
-			http.Redirect(w, r, "/login", 302)
-			return
-		} else {
-			log.Fatal("Some cookie error")
-		}
+	session, err := user.Store.Get(r,"smart-blogger-cookie")
+	if err != nil {
+		log.Fatal("Unable to decode provided email value", err)
+	} 
+	if session.IsNew{
+		http.Redirect(w, r, "/login", http.StatusFound)
 	}
 	db.ConnectDB()
-	_, err := db.Db.Query("select * from session where password = ?", cookie.Value)
-	if err != nil {
-		http.Redirect(w, r, "/login", 302)
-		return
+	var username string
+	if err = db.Db.QueryRow("select username from session where password = ?", session.Values["Value"].(string)).Scan(&username); err != nil{
+		if  err == sql.ErrNoRows{
+			http.Redirect(w, r, "/login", http.StatusFound)
+		} else{
+			log.Fatal("Something went wrong:", err)
+		}
 	}
+
 	err = templates.ExecuteTemplate(w, "addnew.html", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -73,14 +87,31 @@ func PostBlogs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal("Unable to parse Form")
 	}
+    
+	session, err := user.Store.Get(r,"smart-blogger-cookie")
+	if err != nil {
+		log.Fatal("Unable to decode provided email value", err)
+	} 
+	if session.IsNew{
+		http.Redirect(w, r, "/login", http.StatusFound)
+	}
+
+	var username string
+	if err := db.Db.QueryRow("Select username from session where password = ?", session.Values["Value"]).Scan(&username); err != nil{
+      if err == sql.ErrNoRows{
+		http.Redirect(w, r, "/login", http.StatusFound)
+	  } else{
+		log.Fatal("Sth went wrong", err)
+	  }
+	}
 	title := r.PostForm.Get("title")
 	description := r.PostForm.Get("description")
-	author := r.PostForm.Get("author")
+	author := username
 	clickbait := r.PostForm.Get("clickbait")
 	publishedDate := time.Now().Format("2006-Jan-02")
 
 	//check if all the input fields are filled
-	if len(title) == 0 || len(description) == 0 || len(author) == 0 || len(clickbait) == 0 {
+	if len(title) == 0 || len(description) == 0 ||  len(clickbait) == 0 {
 		errMsg := "All the input fields are required"
 		err = templates.ExecuteTemplate(w, "addnew.html", errMsg)
 		if err != nil {
@@ -104,29 +135,31 @@ func PostBlogs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal("Unable to insert data to database", err)
 	} else {
-		http.Redirect(w, r, "/admin", http.StatusFound)
+		http.Redirect(w, r, "/"+ session.Values["blogTitle"].(string) + "/admin", http.StatusFound)
 	}
 }
 
 // EditBlogs - this is a get request, renders input fields to edit blogs
 func EditBlogs(w http.ResponseWriter, r *http.Request) {
 
-	cookie, cookierr := r.Cookie("lemme-explain-cookie")
-	if cookierr != nil {
-		if cookierr == http.ErrNoCookie {
-			http.Redirect(w, r, "/login", 302)
-			return
-		} else {
-			log.Fatal("Some cookie error")
-		}
+	session, err := user.Store.Get(r,"smart-blogger-cookie")
+	if err != nil {
+		log.Fatal("Unable to decode session value:", err)
+	}
+	if session.IsNew{
+		http.Redirect(w, r, "/login", http.StatusFound)
 	}
 	db.ConnectDB()
-	_, err := db.Db.Query("select * from session where password = ?", cookie.Value)
-	if err != nil {
-		http.Redirect(w, r, "/login", 302)
-		return
+	var username string
+	if err = db.Db.QueryRow("select username from session where password = ?", session.Values["value"].(string)).Scan(&username); err != nil{
+		if err == sql.ErrNoRows{
+			http.Redirect(w, r, "/login", http.StatusFound)
+		} else{
+			log.Fatal("Something went wrong:", err)
+		}
 	}
-	id := r.URL.Path[len("/edit/"):]
+	path := "/" + session.Values["blogTitle"].(string) + "/edit/"
+	id := r.URL.Path[len(path):]
 
 	row := db.Db.QueryRow("select * from blogpost where id = ?", id)
 	var blog Blog
@@ -147,13 +180,15 @@ func EditBlogs(w http.ResponseWriter, r *http.Request) {
 
 // UpdateBlogs - this is a post request, updates the blog to the database.
 func UpdateBlogs(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("lemme-explain-cookie")
-	if err != nil || cookie == nil {
-		http.Redirect(w, r, "/login", 302)
-		return
+	session, err := user.Store.Get(r,"smart-blogger-cookie")
+	if err != nil{
+       log.Fatal("something went wrong:", err)
+	}
+	if session.IsNew{
+		http.Redirect(w, r, "/login", http.StatusFound)
 	}
 	db.ConnectDB()
-	_, err = db.Db.Query("select * from session where password = ?", cookie.Value)
+	_, err = db.Db.Query("select * from session where password = ?", session.Values["value"].(string))
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
 		return
@@ -174,26 +209,44 @@ func UpdateBlogs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal("Unable to update with given data")
 	} else {
-		http.Redirect(w, r, "/admin", 302)
+		http.Redirect(w, r, "/" + session.Values["value"].(string) + "/admin", http.StatusFound)
 	}
 }
 
 //GetAdminHome - this is a get request, loads the admin home page
 func GetAdminHome(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("lemme-explain-cookie")
-	if err != nil || cookie == nil {
-		http.Redirect(w, r, "/login", 302)
-		return
+	session, err := user.Store.Get(r,"smart-blogger-cookie")
+	if err != nil{
+		log.Fatal("something went wrong:", err)
+	}
+	if session.IsNew{
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
 	}
 	db.ConnectDB()
-	_, err = db.Db.Query("select * from session where password = ?", cookie.Value)
-	// if cookie value does not match, redirect to login..
-	if err != nil {
+	var username string
+	if err = db.Db.QueryRow("select username from session where password = ?", session.Values["value"]).Scan(&username); err != nil{
+       if err == sql.ErrNoRows{
 		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
-		return
+	   } else{
+		log.Fatal("something went wrong:", err)
+	   }
 	}
+	if len(session.Values["blogTitle"].(string)) < 2{
+		err = templates.ExecuteTemplate(w, "chose-title.html", struct {
+			Username string 
+			Msg string
+			}{
+			Username: username,
+			Msg: "",
+			})
+		if err != nil {
+			log.Fatal("Unable to render provided template:",err)
+		   }
+		return  
+	}
+
 	// if everything is fine proceed towards loading the home page
-	rows, err := db.Db.Query("select * from blogpost order by id desc")
+	rows, err := db.Db.Query("select * from blogpost where author = ? order by id desc", username)
 	if err != nil {
 		log.Fatal("Error while retrieving data: ", err)
 	}
@@ -215,17 +268,25 @@ func GetAdminHome(w http.ResponseWriter, r *http.Request) {
 
 // GetDelete - this is a get request, renders delete option for user confirmation.
 func GetDelete(w http.ResponseWriter, r *http.Request) {
-	_, cookierr := r.Cookie("lemme-explain-cookie")
-	if cookierr != nil {
-		if cookierr == http.ErrNoCookie {
-			http.Redirect(w, r, "/login", 302)
-			return
-		} else {
-			log.Fatal("Some cookie error")
-		}
+	session, err := user.Store.Get(r,"smart-blogger-cookie")
+	if err!= nil {
+		log.Fatal("Something went wrong:", err)
 	}
-	id := r.URL.Path[len("/delete/"):]
-	err := templates.ExecuteTemplate(w, "delete.html", id)
+	if session.IsNew{
+		http.Redirect(w, r, "/login", http.StatusFound)
+	}
+	db.ConnectDB()
+	var username string
+	if err = db.Db.QueryRow("select username from session where password = ?", session.Values["value"]).Scan(&username); err != nil{
+       if err == sql.ErrNoRows{
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+	   } else{
+		log.Fatal("something went wrong:", err)
+	   }
+	}
+	path := "/" + session.Values["blogTitle"].(string) + "/delete/"
+	id := r.URL.Path[len(path):]
+	err = templates.ExecuteTemplate(w, "delete.html", id)
 	if err != nil {
 		log.Fatal("Unable to render provided template")
 	}
@@ -233,22 +294,27 @@ func GetDelete(w http.ResponseWriter, r *http.Request) {
 
 // DeleteBlog - this is a delete request, if everything goes well this deletes the blog from db.
 func DeleteBlog(w http.ResponseWriter, r *http.Request) {
-	_, cookierr := r.Cookie("lemme-explain-cookie")
-	if cookierr != nil {
-		if cookierr == http.ErrNoCookie {
-			http.Redirect(w, r, "/login", 302)
-			return
-		} else {
-			log.Fatal("Some cookie error")
-		}
+	session, err := user.Store.Get(r,"smart-blogger-cookie")
+	if err != nil {
+		log.Fatal("Something went wrong:", err)
+	}
+	if session.IsNew{
+		http.Redirect(w, r, "/login", http.StatusFound)
+	}
+	var username string
+	if err = db.Db.QueryRow("select username from session where password = ?", session.Values["value"]).Scan(&username); err != nil{
+       if err == sql.ErrNoRows{
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+	   } else{
+		log.Fatal("something went wrong:", err)
+	   }
 	}
 	id := r.URL.Path[len("/delete/"):]
-	_, err := db.Db.Exec("delete from blogpost where id = ?", id)
+	_, err = db.Db.Exec("delete from blogpost where id = ?", id)
 	if err != nil {
 		log.Fatal("Unable to delete the blog")
 	}
-	http.Redirect(w, r, "/admin", 302)
-	return
+	http.Redirect(w, r, "/admin", http.StatusFound)
 }
 
 //viewBlog - this is a get request.

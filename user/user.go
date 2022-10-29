@@ -14,13 +14,16 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"projectOne/blog/db"
-	"time"
-	"golang.org/x/crypto/bcrypt"
 	"projectOne/blog/Services"
+	"projectOne/blog/db"
+	"strings"
+	"time"
+
+	"github.com/gorilla/sessions"
+	"golang.org/x/crypto/bcrypt"
 )
 
-var templates = template.Must(template.ParseFiles("./templates/login.html","./templates/signup.html"))
+var templates = template.Must(template.ParseFiles("./templates/login.html","./templates/signup.html","./templates/chose-title.html"))
 
 var characters = []rune("abcdefghijklmnopqrstuvwxyz123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
@@ -42,10 +45,15 @@ func RandStr(length int) string {
 	return string(str)
 }
 
+
+var Store = sessions.NewCookieStore([]byte(RandStr(30)))
+
 // this denotes the secret datas related to a user.
 type Secret struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Verified bool   `json:"verified"`
+	Title    string  `json:"title"`
 }
 
 // this denotes the actual user information
@@ -55,17 +63,38 @@ type User struct{
 	Email    string  `json:"email"`
 	Password string  `json:"password"`
     BlogTitle string `json:"blogTitle"`
+	Verified    bool  `json:"verified"`
 }
 // Get signup form for user.
 // this is a get request from the user.
 func GetSignup(w http.ResponseWriter, r *http.Request){
-	err := templates.ExecuteTemplate(w,"signup.html", nil)
+	session, err := Store.Get(r, "smart-blogger-cookie")
 	if err != nil{
-		log.Fatal("Unable to render provided template")
+		log.Fatal("Unable to retrieve session:",err)
+	}
+	if session.IsNew{
+		err := templates.ExecuteTemplate(w,"signup.html", nil)
+		if err != nil{
+			log.Fatal("Unable to render provided template")
+		}
+	} else{
+		var username string
+	    err = db.Db.QueryRow("select username from session where password = ?", session.Values["Value"].(string)).Scan(&username)
+	    if err != nil{
+		    if err == sql.ErrNoRows{
+			    err = templates.ExecuteTemplate(w, "login.html", nil)
+			        if err != nil {
+				        log.Fatal("Unable to render provided template")
+			           }
+		            }
+	    } else{
+			http.Redirect(w,r, "/" + session.Values["blogTitle"].(string) + "/admin", http.StatusFound)
+		}
 	}
 }
 
 // accepts post request for creating a new user.
+// todo: parse old data in case of failure.
 func Signup(w http.ResponseWriter, r *http.Request){
 	err := r.ParseForm()
 	if err != nil{
@@ -86,13 +115,13 @@ func Signup(w http.ResponseWriter, r *http.Request){
 	db.ConnectDB()
 	defer db.Db.Close()
 	row := db.Db.QueryRow("Select username from Users where username = ?",username)
-	if err := row.Scan(); err != nil{
+	if err := row.Scan(&username); err != nil{
 		if err == sql.ErrNoRows{
 			row := db.Db.QueryRow("Select email from emails where email = ?", email)
-			if err := row.Scan(); err != nil{
+			if err := row.Scan(&email); err != nil{
 				if err == sql.ErrNoRows{
 					hashedPass := HashPassword(password)
-					_, err = db.Db.Exec("Insert into User( username, email, password, blogTitle) values(?,?,?,NULL)", username, email, hashedPass)
+					_, err = db.Db.Exec("Insert into User( username, email, password, blogTitle, verified) values(?,?,?,?,false)", username, email, hashedPass,"")
 					if err != nil {
 						 log.Fatal("Unable to insert data to database", err)
 					} else {
@@ -108,7 +137,7 @@ func Signup(w http.ResponseWriter, r *http.Request){
 						  if err != nil{
 							log.Fatal("Unable to render the signup template")
 						  }
-						  _, err = db.Db.Exec("Insert into Token(token,date_generated, date_expires, date_used, user_id) values(?,?,?,NULL,?)",generated_token,current_token, current_token + 172800,user_id)
+						  _, err = db.Db.Exec("Insert into Token(token,date_generated, date_expires, date_used, user_id) values(?,?,?,0,?)",generated_token,current_token, current_token + 172800,user_id)
 						  if err != nil{
 							  log.Fatal("Unable to insert token data into database:", err)
 						  }
@@ -129,7 +158,7 @@ func Signup(w http.ResponseWriter, r *http.Request){
 				}
 		}
 	} else{
-		err := templates.ExecuteTemplate(w,"signup.html","this usename is already takaen")
+		err := templates.ExecuteTemplate(w,"signup.html","this usename is already taken")
 				if err != nil{
 				  log.Fatal("Unable to render the signup template")
 				}
@@ -138,8 +167,13 @@ func Signup(w http.ResponseWriter, r *http.Request){
 
 // GetLogin - this is a get request, renders login form for the user.
 func GetLogin(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("lemme-explain-cookie")
-	if err != nil || cookie == nil {
+	
+	session, err := Store.Get(r,"smart-blogger-cookie")
+	if err != nil{
+		log.Fatal("Unable to decode available session info", err)
+	}
+	if session.IsNew{
+		fmt.Println("New session")
 		err = templates.ExecuteTemplate(w, "login.html", nil)
 		if err != nil {
 			log.Fatal("Unable to render provided template")
@@ -147,15 +181,21 @@ func GetLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	db.ConnectDB()
-	_, err = db.Db.Query("select * from session where password = ?", cookie.Value)
-	if err != nil {
-		err = templates.ExecuteTemplate(w, "login.html", nil)
-		if err != nil {
-			log.Fatal("Unable to render provided template")
+	var username string
+	err = db.Db.QueryRow("select username from session where password = ?", session.Values["value"].(string)).Scan(&username)
+	if err != nil{
+		if err == sql.ErrNoRows{
+			err = templates.ExecuteTemplate(w, "login.html", nil)
+			if err != nil {
+				log.Fatal("Unable to render provided template")
+			}
+			return
 		}
 	}
 	// user is already logged in so take him to admin home page
-	http.Redirect(w, r, "/admin", 302)
+	// todo: change the link to title/admin
+	path := "/" + session.Values["blogTitle"].(string) + "/admin"
+	http.Redirect(w, r, path, http.StatusFound)
 }
 
 //Login - this is a post request, logs in the user
@@ -166,92 +206,143 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 	username := r.PostForm.Get("username")
 	password := r.PostForm.Get("password")
+	//todo: check password against hashed password.
+	// hashed_password := HashPassword(password)
 	db.ConnectDB()
-	row := db.Db.QueryRow("Select * from admin where username = ? and password = ?", username, password)
-	var sec Secret
-	if err := row.Scan(&sec.Username, &sec.Password); err != nil {
+	row := db.Db.QueryRow("Select user_id, Verified, blogTitle, password from User where username = ?", username)
+	var hashed_password string
+	var Verified bool
+	var blogTitle string
+	var user_id int64
+	if err := row.Scan(&user_id, &Verified, &blogTitle, &hashed_password); err != nil {
 		if err == sql.ErrNoRows {
 			// return invalid username or password error
-			errMsg := "Invalid username or Password."
+			errMsg := "Invalid username."
+			err = templates.ExecuteTemplate(w, "login.html", errMsg)
+			if err != nil {
+				log.Fatal("Unable to render provided template")
+			}
+			return
+		} else {
+			log.Fatal("Unable to Scan:", err)
+		}
+	} 
+	err = bcrypt.CompareHashAndPassword([]byte(hashed_password), []byte(password))
+	if err != nil{
+		errMsg := "Invalid password."
 			err = templates.ExecuteTemplate(w, "login.html", errMsg)
 			if err != nil {
 				log.Fatal("Unable to render provided template")
 			}
 		} else {
-			log.Fatal("Unable to Scan")
-		}
-	} else {
-		//checks if session already exists
-		cookie, err := r.Cookie("lemme-explain-cookie")
-		if err != nil || cookie == nil {
-			rand.Seed(time.Now().UnixNano())
-			// store random string value
-			randString := RandStr(60)
-			fmt.Println("Cookie value:", randString)
-
-			http.SetCookie(w, &http.Cookie{
-				Name:  "lemme-explain-cookie",
-				Value: randString,
-			})
-
-			//creates and store a new session
-			_, err := db.Db.Exec("Insert into session values(?, ?)", username, randString)
-			if err != nil {
-				// because there is already a username present in the db
-				// update session value if the username already exist
-				_, err = db.Db.Exec("Update session set password = ? where username = ?", randString, username)
-				if err != nil {
-					log.Fatal("Unable to update session")
-				}
+			if !Verified{
+				//todo: prompt for verification
 			}
-			http.Redirect(w, r, "/admin", 302)
-			return
-		}
-
-		// store random string value
-		randString := RandStr(60)
-		fmt.Println("Cookie value:", randString)
-
-		http.SetCookie(w, &http.Cookie{
-			Name:  "lemme-explain-cookie",
-			Value: randString,
-		})
-		_, err = db.Db.Exec("Update  session set password = ? where username = ?", randString, username)
-		if err != nil {
-			log.Fatal("Unable to update session")
-		}
-		// redirect to the admin home page
-		fmt.Println("Login was successfull")
-		http.Redirect(w, r, "/admin", http.StatusMovedPermanently)
-		return
+			randString := RandStr(60)
+		    session, err := Store.Get(r, "smart-blogger-cookie")
+			if err == nil{
+				if session.IsNew{
+					fmt.Println("post login new session")
+					session.Values["value"] = randString
+					session.Values["blogTitle"] = strings.Replace(blogTitle," ", "-", -1)
+					session.Values["username"] = username
+					err = sessions.Save(r, w)
+					if err != nil{
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					_, err := db.Db.Exec("Insert into session values(?, ?)", username, randString)
+					if err != nil{
+						log.Fatal("Something went wrong:",err)
+					}
+					if len(session.Values["blogTitle"].(string)) < 2{
+						err = templates.ExecuteTemplate(w, "chose-title.html", struct {
+							Username string 
+							Msg string
+							}{
+							Username: username,
+							Msg: "",
+							})
+						if err != nil {
+							log.Fatal("Unable to render provided template:",err)
+						   }
+						return  
+					}
+					http.Redirect(w, r, "/" + session.Values["blogTitle"].(string) + "/admin", http.StatusFound)
+				} else{
+					var username string
+					err = db.Db.QueryRow("select username from session where password = ?", session.Values["value"].(string)).Scan(&username)
+					if err != nil{
+					  if err == sql.ErrNoRows{
+					   http.Redirect(w, r, "/login", http.StatusFound)
+						}
+					} else{
+						if len(session.Values["blogTitle"].(string)) < 2{
+							err = templates.ExecuteTemplate(w, "chose-title.html", struct {
+								Username string 
+								Msg string
+								}{
+								Username: username,
+								Msg: "",
+								})
+							if err != nil {
+								log.Fatal("Unable to render provided template:",err)
+							   }
+							return  
+						}
+						http.Redirect(w,r, "/" + session.Values["blogTitle"].(string) + "/admin", http.StatusFound)
+					}
+				}
+			} else{
+				log.Fatal(err)
+			}
 	}
 }
 
 // LogOut ... logs out the user.
 func LogOut(w http.ResponseWriter, r *http.Request) {
-	cookie, cookierr := r.Cookie("lemme-explain-cookie")
-	if cookierr != nil {
-		if cookierr == http.ErrNoCookie {
-			fmt.Println("No cookie found")
-			http.Redirect(w, r, "/login", 302)
-			return
-		} else {
-			log.Fatal("Some cookie error")
-		}
+	session, err := Store.Get(r, "smart-blogger-cookie")
+	if err != nil{
+		log.Fatal("Unable to get session value:", err)
 	}
 	db.ConnectDB()
-	_, err := db.Db.Query("select * from session where password = ?", cookie.Value)
+	_, err = db.Db.Query("delete from session where password = ?", session.Values["Value"].(string))
 	if err != nil {
-		http.Redirect(w, r, "/login", 302)
+		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
-	// setting a new cookie value with the previous cookie name deletes previous cookie
-	cookie = &http.Cookie{
+	http.Redirect(w, r, "/login", http.StatusFound)
+}
 
-		Name:   "lemme-explain-cookie",
-		Value:  "",
-		MaxAge: -1,
+func SetTitle(w http.ResponseWriter, r *http.Request){
+	err := r.ParseForm()
+	if err != nil {
+		log.Fatal("Unable to Parse Form")
 	}
-	http.SetCookie(w, cookie)
-	http.Redirect(w, r, "/login", 302)
+	session, err := Store.Get(r, "smart-blogger-cookie")
+    if err != nil{
+		log.Fatal(err)
+	}
+	if session.IsNew{
+		http.Redirect(w, r, "/login", http.StatusFound)
+	}
+	var username string
+	err = db.Db.QueryRow("select username from session where password = ?", session.Values["value"].(string)).Scan(&username)
+	if err != nil{
+		if err == sql.ErrNoRows{
+		http.Redirect(w, r, "/login", http.StatusFound)
+		} else{
+			log.Fatal(err)
+		}
+	} else{
+		title := r.PostForm.Get("title")
+		_, err = db.Db.Exec("Update User set blogTitle = ? where username = ?", title, username)
+		if err != nil {
+			log.Fatal("Unable to update with given data")
+		} else {
+			blogTitle := strings.Replace(title, " ", "-", -1)
+			session.Values["blogTitle"] = blogTitle
+			http.Redirect(w, r, "/" + blogTitle + "/admin", http.StatusFound)
+		}
+	}
 }
