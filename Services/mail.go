@@ -7,17 +7,21 @@ import (
 	"log"
 	"net/http"
 	"net/smtp"
+	"os"
 	"projectOne/blog/db"
 	"text/template"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 var templates = template.Must(template.ParseFiles("./templates/email-temp.html"))
 
 //todo: use .env files to hide credentials.
 func SendEmail(username, token , to_email, purpose string){
-	
-	auth := smtp.PlainAuth("","smartblogger119@gmail.com","xlicbslexuzeixcr","smtp.gmail.com")
+	godotenv.Load()
+	password := os.Getenv("APP_PASSWORD")
+	auth := smtp.PlainAuth("","smartblogger119@gmail.com", password, "smtp.gmail.com")
 
 	to := []string{to_email}
 
