@@ -2,14 +2,14 @@
 <html>
  <body>
     <div>
-        <h4>Hi <b> {{.Username}} </b></h4>
+        <h4>Hi <b> {{.Username}}, </b></h4>
 
         <p>
-            We recieved a registration request for Smart Blogger with this email.Click the given link to confirm:
+            {{.Msg}}
         </p>
-        <a href="https://localhost:8080/confirm_email?token={{.Token}}">localhost:8080/confirm_email?token={{.Token}}</a>
+        <a href="http://localhost:8080/{{.Link}}?token={{.Token}}">localhost:8080/{{.Link}}?token={{.Token}}</a>
 
-        The mail will expire in 2 days.
+        The link will expire in 2 days.
         If this was not you, you can safely ignore this mail.
     </div>
  </body>

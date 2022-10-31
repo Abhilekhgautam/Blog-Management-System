@@ -55,9 +55,9 @@
     </style>
     <div class="main-container">
         <div>
-       <form>
+       <form action="/{{.Link}}" method="post">
         <p>Enter your email if you want us to send you a confirmation email.</p>
-           <p style = "color:green; margin-top: 2px;">{{.}}</p>
+           <p style = "color:green; margin-top: 2px;">{{.Msg}}</p>
           <input type="email" placeholder="Enter your email address" name="email" required>
 
           <button class="SubmitButton" type="submit">Send Link</button> 

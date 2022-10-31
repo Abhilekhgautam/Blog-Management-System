@@ -7,47 +7,123 @@
        <body>
 	  <style>
 
-             .option{
+.option{
 		display: flex !important;
 		justify-content: flex-end !important;
-		}
+}
 
-	     .btn-lookalike{
+.btn-lookalike{
                 padding: 10px;
                 color  : white;
 		cursor : pointer;
                 margin : 5px;
-	       }
+}
 
-	      .bg-blue{
+.bg-blue{
                 background:#0069d9;
-		}
+}
 
 		.bg-red{
 		 background: #682333
 		}
+    .heading{
+    background-color: #174bc7;
+    display: flex;
+    justify-content: space-around;
+}
+.sub-heading{
+    font-family: 'Open Sans', sans-serif;
+    font-size: 40px;
+}
+.brand-name{
+    font-family: 'Rubik', sans-serif;
+    font-size: 64px;
+    color: white;
+}
+.blog-index{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+#blog-container{
+    display: flex;
+    flex-direction: column;
+    margin-top: 25px;
+    text-align: left;
+    padding: 5px;
+}
+.blog-items{
+    padding: 5%;
+    margin-bottom: 8px;
+    margin-top: 8px;
+    min-width: 100%;
+}
+.title{
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 700;
+    color: #174bc7;
+    text-decoration: none;
+    font-size: 22px;
+}
+.date{
+    font-weight: 200;
+    font-size: 13px;
+}
+.author{
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 700;
+    color: #174bc7;
+    text-decoration: none;
+    font-size: 15px;
+}
+.description{
+    font-weight: 200;
+    font-size: 14px;
+}
+.blog-items:hover{
+    border-radius: 4px;
+    box-shadow: 5px 8px 9px black;
+}
+
+@media (max-width: 500px){
+   .brand-name{
+        font-size: 30px;
+     }
+    .blog-index{
+        align-items: unset;
+        justify-content: unset;
+      }
+    .blog-items{
+        box-sizing: border-box;
+        border-radius: 4px;
+        box-shadow: 5px 8px 9px black;
+     }
+}
+
 
 	  </style>
         <header class="heading">
-           <h1 class="brand-name">Lemme Explain</h1>
+           <h1 class="brand-name">{{.BlogTitle}}</h1>
         </header>
             <main class = "blog-index">
-		<div class = "option">
-		  <a href = "/logout" class = "btn-lookalike bg-red">Logout</a>
-		  <a href = "/add" class = "btn-lookalike bg-blue">Add New</a>
-		</div>
+              <div class = "option">
+                <a href = "/logout" class = "btn-lookalike bg-red">Logout</a>
+                <a href = "/{{.BlogTitle}}/admin/add" class = "btn-lookalike bg-blue">Add New</a>
+              </div>
                 <div id="blog-container">
-                    {{range .}}
+                    {{range .Blog}}
                     <div class = "blog-items">
-                     <a class = "title" href = "/edit/{{.ID}}">{{.Title}}</a>
+                     <a class = "title" href = "/{{.BlogTitle}}/admin/edit/{{.ID}}">{{.Title}}</a>
                      <p class = "date">{{.PublishedDate}}</p>
                      <p class = "author">{{.Author}}</p>
                      <p class = "description">{{.Clickbait}}</p>
-  
-                     <a href = "/edit/{{.ID}}" >Edit</a>
-                     <a href = "/delete/{{.ID}}">Delete</a>
+
+                     <a href = "/{{.BlogTitle}}/admin/edit/{{.ID}}" >Edit</a>
+                     <a href = "/{{.BlogTitle}}/admin/delete/{{.ID}}">Delete</a>
+                     {{end}}
+
                    </div>
-                   {{end}}
                </div>
            </main>
       </body>

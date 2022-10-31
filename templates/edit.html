@@ -8,6 +8,57 @@
    
        <body>
   
+        <style>
+          body{
+             background-color: black;
+             color: white;
+         }
+         .add{
+             display: flex;
+             flex-direction: column;
+             height: 100vh;
+             row-gap: 20px;
+ 
+         }
+         #description{
+             resize: none;
+             min-height: 50%;
+             padding: 20px;
+             font-size: 20px;
+         }
+         #title{
+             padding:12px;
+             font-size: 20px;
+         }
+ 
+         #author{
+ 
+             padding:12px;
+             font-size:20px;
+ 
+         }
+ 
+         #clickbait{
+ 
+         padding: 12px;
+         font-size: 20px
+ 
+         }
+ 
+         .btn{
+         padding: 12px;
+         background-color: orange;
+         color:white;
+         outline: none;
+             cursor: pointer;
+             font-size: 25px;
+             border: none;
+         }
+         .btn:hover{
+             border: 2px solid white;
+         }
+        </style>
+
 		   <form method = "POST" action = "/update/{{.ID}}" id = "form" class = "add">
               <h1>Editing ID: {{.ID}}</h1>
               <label for="title">Title:</label>
@@ -16,8 +67,7 @@
               <textarea name = "description" id ="description" required>{{.Description}}</textarea>
 			  <label for = "clickbait">Clickbait:</label>
 			  <input name = "clickbait" id = "clickbait" value = {{.Clickbait}} required>
-              <label for="author">Author:</label>
-              <input name="author" id ="author" value = {{.Author}} required>
+              
               <button id = "submit" class = "btn" type = "submit">Update</button>
          </form>
       </body>

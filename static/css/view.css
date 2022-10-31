@@ -8,7 +8,7 @@ body{
 
 .title{
     font-family: 'Alfa Slab One', cursive;
-    color: Red;
+    color: white;
 }
 .container{
     display: flex;
