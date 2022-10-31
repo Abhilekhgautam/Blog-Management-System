@@ -483,12 +483,23 @@ func ForgotPassword(w http.ResponseWriter, r *http.Request){
 	}
 	email := r.PostForm.Get("email")
 	fmt.Println("Email Address:",email)
-    var user_id string
+    var user_id int64
 	db.ConnectDB()
-	row := db.Db.QueryRow("Select user_id from User where email = ?", email)
-	if row.Scan(&user_id); err != nil{
+	fmt.Println("Select user_id from User where email = ",email)
+	if err := db.Db.QueryRow("Select user_id from User where email = ?", email).Scan(&user_id); err != nil{
 		if err == sql.ErrNoRows{
 			//.. no such email found.
+			fmt.Println("NO such email address found")
+			err = templates.ExecuteTemplate(w,"email-prompt.html", struct{
+				Link string
+				Msg  string
+			}{
+				Link: "forgot",
+				Msg : "No such email address found",
+			})
+				if err != nil{
+					log.Fatal("Unable to render provided template")
+				}
 		} else{
 			log.Fatal("Unable to scan data")
 		}
