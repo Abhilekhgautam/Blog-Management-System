@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+ <body>
+    <div>
+        <h4>Hi <b> {{.Username}}, </b></h4>
+
+        <p>
+            {{.Msg}}
+        </p>
+        <a href="http://localhost:8080/{{.Link}}?token={{.Token}}">localhost:8080/{{.Link}}?token={{.Token}}</a>
+
+        The link will expire in 2 days.
+        If this was not you, you can safely ignore this mail.
+    </div>
+ </body>
+</html>

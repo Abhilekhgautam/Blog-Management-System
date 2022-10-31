@@ -6,6 +6,56 @@
          <title>Admin Panel</title>
      </head>
      <body>
+        <style>
+         body{
+            background-color: black;
+            color: white;
+        }
+        .add{
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            row-gap: 20px;
+
+        }
+        #description{
+            resize: none;
+            min-height: 50%;
+            padding: 20px;
+            font-size: 20px;
+        }
+        #title{
+            padding:12px;
+            font-size: 20px;
+        }
+
+        #author{
+
+            padding:12px;
+            font-size:20px;
+
+        }
+
+        #clickbait{
+
+        padding: 12px;
+        font-size: 20px
+
+        }
+
+        .btn{
+        padding: 12px;
+        background-color: orange;
+        color:white;
+        outline: none;
+            cursor: pointer;
+            font-size: 25px;
+            border: none;
+        }
+        .btn:hover{
+            border: 2px solid white;
+        }
+        </style>
          <form id = "form" class="add" method = "POST" action = "/postblog">
              <p style = "color:red; margin-top: 2px;">{{.}}</p>
             <label for="title">Title:</label>
@@ -14,8 +64,6 @@
             <textarea name = "description" id ="description"></textarea>
             <label for="clickbait">Clickbait:(255 characters only)</label>
             <input name = "clickbait" id ="clickbait">
-            <label for="author">Author:</label>
-            <input name="author" id ="author">
             <button id = "submit" class = "btn" type = "submit">Submit</button>
         </form>
     </body>
