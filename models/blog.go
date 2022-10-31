@@ -2,13 +2,14 @@ package blog
 
 import (
 	"database/sql"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"projectOne/blog/db"
+	"projectOne/blog/user"
 	"strings"
 	"time"
-	"projectOne/blog/user"
 )
 
 type Blog struct {
@@ -18,16 +19,27 @@ type Blog struct {
 	Description   string `json:"description"`
 	Clickbait     string `json:"clickbait"`
 	PublishedDate string `json:"published_date"`
+	BlogTitle     string
 }
 
 var templates = template.Must(template.ParseFiles("./templates/home.html", "./templates/addnew.html",
-	"./templates/adminhome.html", "./templates/edit.html", "./templates/delete.html","./templates/view.html","./templates/chose-title.html"))
+	"./templates/adminhome.html", "./templates/edit.html", "./templates/delete.html","./templates/view.html","./templates/chose-title.html","./templates/landing-page.html"))
 
-// GetHome - loads all the blog (for client)
-func GetHome(w http.ResponseWriter, r *http.Request) {
+func GetHome(w http.ResponseWriter, r *http.Request){
+	err := templates.ExecuteTemplate(w, "landing-page.html", nil)
+    if err != nil{
+		log.Fatal("Unable to render landing-page.html:",err)
+	}
+}	
+
+// GetBlogHome - loads all the blog (for client)
+func GetBlogHome(w http.ResponseWriter, r *http.Request) {
 	db.ConnectDB()
 	title := r.URL.Path
-	spaced_title := strings.Replace(title,"-"," ", -1)
+	fmt.Println(title)
+	title = strings.Replace(title,"/","", -1)
+	spaced_title := strings.Replace(title,"-"," ",-1)
+
 	var username string
 	if err := db.Db.QueryRow("Select username from User where blogTitle = ?", spaced_title).Scan(&username); err != nil{
       if err == sql.ErrNoRows{
@@ -64,10 +76,11 @@ func AddBlogs(w http.ResponseWriter, r *http.Request) {
 	} 
 	if session.IsNew{
 		http.Redirect(w, r, "/login", http.StatusFound)
+		return
 	}
 	db.ConnectDB()
 	var username string
-	if err = db.Db.QueryRow("select username from session where password = ?", session.Values["Value"].(string)).Scan(&username); err != nil{
+	if err = db.Db.QueryRow("select username from session where password = ?", session.Values["value"].(string)).Scan(&username); err != nil{
 		if  err == sql.ErrNoRows{
 			http.Redirect(w, r, "/login", http.StatusFound)
 		} else{
@@ -94,10 +107,11 @@ func PostBlogs(w http.ResponseWriter, r *http.Request) {
 	} 
 	if session.IsNew{
 		http.Redirect(w, r, "/login", http.StatusFound)
+		return
 	}
 
 	var username string
-	if err := db.Db.QueryRow("Select username from session where password = ?", session.Values["Value"]).Scan(&username); err != nil{
+	if err := db.Db.QueryRow("Select username from session where password = ?", session.Values["value"]).Scan(&username); err != nil{
       if err == sql.ErrNoRows{
 		http.Redirect(w, r, "/login", http.StatusFound)
 	  } else{
@@ -135,7 +149,7 @@ func PostBlogs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal("Unable to insert data to database", err)
 	} else {
-		http.Redirect(w, r, "/"+ session.Values["blogTitle"].(string) + "/admin", http.StatusFound)
+		http.Redirect(w, r, "/"+ session.Values["blogTitle"].(string) + "/admin/", http.StatusFound)
 	}
 }
 
@@ -148,6 +162,7 @@ func EditBlogs(w http.ResponseWriter, r *http.Request) {
 	}
 	if session.IsNew{
 		http.Redirect(w, r, "/login", http.StatusFound)
+		return
 	}
 	db.ConnectDB()
 	var username string
@@ -158,8 +173,10 @@ func EditBlogs(w http.ResponseWriter, r *http.Request) {
 			log.Fatal("Something went wrong:", err)
 		}
 	}
-	path := "/" + session.Values["blogTitle"].(string) + "/edit/"
+	path := "/" + session.Values["blogTitle"].(string) + "/admin/edit/"
 	id := r.URL.Path[len(path):]
+	fmt.Println(id)
+	fmt.Println(r.URL.Path[len("/" + session.Values["blogTitle"].(string) + "/edit"):])
 
 	row := db.Db.QueryRow("select * from blogpost where id = ?", id)
 	var blog Blog
@@ -186,6 +203,7 @@ func UpdateBlogs(w http.ResponseWriter, r *http.Request) {
 	}
 	if session.IsNew{
 		http.Redirect(w, r, "/login", http.StatusFound)
+		return
 	}
 	db.ConnectDB()
 	_, err = db.Db.Query("select * from session where password = ?", session.Values["value"].(string))
@@ -202,14 +220,13 @@ func UpdateBlogs(w http.ResponseWriter, r *http.Request) {
 
 	title := r.PostForm.Get("title")
 	description := r.PostForm.Get("description")
-	author := r.PostForm.Get("author")
 	clickbait := r.PostForm.Get("clickbait")
 
-	_, err = db.Db.Exec("Update blogpost set title = ? ,description = ?, clickbait = ?, author = ? where id = ? ", title, description, clickbait, author, id)
+	_, err = db.Db.Exec("Update blogpost set title = ? ,description = ?, clickbait = ? where id = ? ", title, description, clickbait, id)
 	if err != nil {
 		log.Fatal("Unable to update with given data")
 	} else {
-		http.Redirect(w, r, "/" + session.Values["value"].(string) + "/admin", http.StatusFound)
+		http.Redirect(w, r, "/" + session.Values["blogTitle"].(string) + "/admin/", http.StatusFound)
 	}
 }
 
@@ -221,10 +238,18 @@ func GetAdminHome(w http.ResponseWriter, r *http.Request) {
 	}
 	if session.IsNew{
 		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+		return
 	}
+	fmt.Println("session.IsNew = ", session.IsNew)
 	db.ConnectDB()
+	if len(session.Values) != 4{
+		fmt.Println("Not enough field item: len(session.Values) == ",len(session.Values))
+	}
+	if session.Values["value"] == nil{
+		log.Fatal("session doesnot hava a field value:",err)
+	}
 	var username string
-	if err = db.Db.QueryRow("select username from session where password = ?", session.Values["value"]).Scan(&username); err != nil{
+	if err = db.Db.QueryRow("select username from session where password = ?", session.Values["value"].(string)).Scan(&username); err != nil{
        if err == sql.ErrNoRows{
 		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
 	   } else{
@@ -246,7 +271,7 @@ func GetAdminHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// if everything is fine proceed towards loading the home page
-	rows, err := db.Db.Query("select * from blogpost where author = ? order by id desc", username)
+	rows, err := db.Db.Query("select id, title, author, description, clickbait, published_date from blogpost where author = ?  order by id desc", username)
 	if err != nil {
 		log.Fatal("Error while retrieving data: ", err)
 	}
@@ -254,15 +279,23 @@ func GetAdminHome(w http.ResponseWriter, r *http.Request) {
 	var blogs []Blog
 	for rows.Next() {
 		var blog Blog
+		blog.BlogTitle = session.Values["blogTitle"].(string)
 		if err = rows.Scan(&blog.ID, &blog.Title, &blog.Author, &blog.Description, &blog.Clickbait, &blog.PublishedDate); err != nil {
 			log.Fatal("Unable to scan into slice", err)
 		}
 		// add element to blogs slice
 		blogs = append(blogs, blog)
 	}
-	err = templates.ExecuteTemplate(w, "adminhome.html", blogs)
+	title := session.Values["blogTitle"].(string)
+	err = templates.ExecuteTemplate(w, "adminhome.html", struct{
+		Blog []Blog
+		BlogTitle string
+	}{
+		Blog: blogs,
+		BlogTitle: title,
+	})
 	if err != nil {
-		log.Fatal("Unable to render provided template")
+		log.Fatal("Unable to render provided template:", err)
 	}
 }
 
@@ -284,9 +317,17 @@ func GetDelete(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("something went wrong:", err)
 	   }
 	}
-	path := "/" + session.Values["blogTitle"].(string) + "/delete/"
+	title := session.Values["blogTitle"].(string)
+	path := "/" + title+ "/admin/delete/"
 	id := r.URL.Path[len(path):]
-	err = templates.ExecuteTemplate(w, "delete.html", id)
+	fmt.Println("Id to be deleted:",id)
+	err = templates.ExecuteTemplate(w, "delete.html", struct{
+		ID string
+		Title string
+	}{
+		ID: id,
+		Title: title,
+	})
 	if err != nil {
 		log.Fatal("Unable to render provided template")
 	}
@@ -314,7 +355,8 @@ func DeleteBlog(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal("Unable to delete the blog")
 	}
-	http.Redirect(w, r, "/admin", http.StatusFound)
+	path := "/" + session.Values["blogTitle"].(string) + "/admin/"
+	http.Redirect(w, r, path, http.StatusFound)
 }
 
 //viewBlog - this is a get request.
