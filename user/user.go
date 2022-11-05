@@ -263,6 +263,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		} else {
 			if !Verified{
 				//todo: prompt for verification
+				errMsg := "You need to verify first."
+			err = templates.ExecuteTemplate(w, "login.html", errMsg)
+			if err != nil {
+				log.Fatal("Unable to render provided template")
+			}
+			return
 			}
 			randString := RandStr(60)
 		    session, err := Store.Get(r, "smart-blogger-cookie")
