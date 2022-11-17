@@ -17,11 +17,11 @@
          }
      </style>
          <header class="heading">
-             <h1 class="brand-name">Lemme Explain</h1>
+             <h1 class="brand-name">{{.BlogTitle}}</h1>
          </header>
 
          <main class = "blog-index">
-		 {{range .}}
+		 {{range .Blog}}
             <div id="blog-container">
                 <div class = "blog-items">
                     <a class = "title" href = "/view/{{.ID}}">{{.Title}}</a>
