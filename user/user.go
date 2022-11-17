@@ -118,11 +118,66 @@ func Signup(w http.ResponseWriter, r *http.Request){
 
 	if len(username) == 0 || len(email) == 0 || len(password) == 0 {
 		errMsg := "All the fields are required"
-		err := templates.ExecuteTemplate(w,"signup.html", errMsg)
+		err := templates.ExecuteTemplate(w,"signup.html", struct{
+			Color string
+			Msg string 
+			Username string
+			Email string
+			Password string
+		}{
+			"red",
+			errMsg,
+			username,
+			email,
+			password,
+		})
 		if err != nil{
 			log.Fatal("Unable to render signup template")
 		}
+		return
 	}
+	if len(username) < 4{
+		errMsg := "Username must be 4 character long."
+		err := templates.ExecuteTemplate(w,"signup.html", struct{
+			Color string
+			Msg string 
+			Username string
+			Email string
+			Password string
+		}{
+			"red",
+			errMsg,
+			username,
+			email,
+			password,
+		})
+		if err != nil{
+			log.Fatal("Unable to render signup template")
+		}
+		return
+	}
+	if len(password) < 8{
+		errMsg := "Password must be 8 character long."
+		err := templates.ExecuteTemplate(w,"signup.html", struct{
+			Color string
+			Msg string 
+			Username string
+			Email string
+			Password string
+		}{
+			"red",
+			errMsg,
+			username,
+			email,
+			password,
+		})
+		if err != nil{
+			log.Fatal("Unable to render signup template")
+		}
+		return
+	}
+
+	
 
 	db.ConnectDB()
 	defer db.Db.Close()
@@ -145,7 +200,20 @@ func Signup(w http.ResponseWriter, r *http.Request){
 							log.Fatal("Unable to scan data")
 						  }
 						  mail.SendEmail(username, generated_token, email,"confirmation")
-						  err := templates.ExecuteTemplate(w,"signup.html","A confirmation email has been sent")
+						  msg := "A confirmation email has been sent";
+						  err := templates.ExecuteTemplate(w,"signup.html", struct{
+							Color string
+							Msg string
+							Username string
+							Email string
+							Password string
+						  }{
+                            "green",
+							msg,
+							"",
+							"",
+							"",
+						  })
 						  if err != nil{
 							log.Fatal("Unable to render the signup template")
 						  }
@@ -158,19 +226,58 @@ func Signup(w http.ResponseWriter, r *http.Request){
 					log.Fatal("Something went wrong:", err)
 				}
 			} else{
-				err := templates.ExecuteTemplate(w,"signup.html","this email already exists")
+				msg := "this email already exists"
+				err := templates.ExecuteTemplate(w,"signup.html",struct{
+					Color string
+					Msg string
+					Username string
+					Email string
+					Password string
+				  }{
+                    "red",
+					msg,
+					username,
+					email,
+					password,
+				  })
 				if err != nil{
 				  log.Fatal("Unable to render the signup template")
 				}
 			}
 		} else{
-			err := templates.ExecuteTemplate(w,"signup.html","this email already exists")
+			msg := "this email already exists"
+			err := templates.ExecuteTemplate(w,"signup.html",struct{
+				Color string
+				Msg string
+				Username string
+				Email string
+				Password string
+			  }{
+				"red",
+				msg,
+				username,
+				email,
+				password,
+			  })
 				if err != nil{
 				  log.Fatal("Unable to render the signup template")
 				}
 		}
 	} else{
-		err := templates.ExecuteTemplate(w,"signup.html","this usename is already taken")
+		msg := "this username is already taken."
+		err := templates.ExecuteTemplate(w,"signup.html",struct{
+			Color string
+			Msg string
+			Username string
+			Email string
+			Password string
+		  }{
+			"red",
+			msg,
+			username,
+			email,
+			password,
+		  })
 				if err != nil{
 				  log.Fatal("Unable to render the signup template")
 				}
@@ -244,7 +351,16 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		if err == sql.ErrNoRows {
 			// return invalid username or password error
 			errMsg := "Invalid username."
-			err = templates.ExecuteTemplate(w, "login.html", errMsg)
+			err = templates.ExecuteTemplate(w, "login.html", struct{
+				Msg string
+				Username string
+				Password string
+
+			}{
+              errMsg,
+			  username,
+			  password,
+			})
 			if err != nil {
 				log.Fatal("Unable to render provided template")
 			}
@@ -256,13 +372,35 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	err = bcrypt.CompareHashAndPassword([]byte(hashed_password), []byte(password))
 	if err != nil{
 		errMsg := "Invalid password."
-			err = templates.ExecuteTemplate(w, "login.html", errMsg)
+			err = templates.ExecuteTemplate(w, "login.html", struct{
+				Msg string
+				Username string
+				Password string
+			}{
+				errMsg,
+				username,
+				password,
+			})
 			if err != nil {
 				log.Fatal("Unable to render provided template")
 			}
 		} else {
 			if !Verified{
 				//todo: prompt for verification
+				errMsg := "You need to verify first."
+			err = templates.ExecuteTemplate(w, "login.html", struct{
+				Msg string 
+				Username string 
+				Password string
+			}{
+				errMsg,
+				username,
+				password,
+			})
+			if err != nil {
+				log.Fatal("Unable to render provided template")
+			}
+			return
 			}
 			randString := RandStr(60)
 		    session, err := Store.Get(r, "smart-blogger-cookie")
@@ -285,9 +423,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 						err = templates.ExecuteTemplate(w, "chose-title.html", struct {
 							Username string 
 							Msg string
+							Title string
 							}{
 							Username: username,
 							Msg: "",
+							Title:"",
 							})
 						if err != nil {
 							log.Fatal("Unable to render provided template:",err)
@@ -376,6 +516,24 @@ func SetTitle(w http.ResponseWriter, r *http.Request){
 		}
 	} else{
 		title := r.PostForm.Get("title")
+		var blogTitle string
+		err = db.Db.QueryRow("select * from Titles where blogTitle = ?",title).Scan(&blogTitle)
+		if err == nil{
+			err = templates.ExecuteTemplate(w,"chose-title.html", struct{
+				Username string
+				Msg   string
+				Title string
+			}{
+				Username: username,
+				Msg: "This title is already taken",
+				Title: title,
+			})
+			if err != nil{
+				log.Fatal("Unable to render provided template")
+			}
+			return
+		}
+		if err == sql.ErrNoRows{
 		_, err = db.Db.Exec("Update User set blogTitle = ? where username = ?", title, username)
 		if err != nil {
 			log.Fatal("Unable to update with given data")
@@ -388,6 +546,7 @@ func SetTitle(w http.ResponseWriter, r *http.Request){
 			}
 			http.Redirect(w, r, "/" + blogTitle + "/admin/", http.StatusFound)
 		}
+	   }
 	}
 }
 
@@ -420,6 +579,21 @@ func ChangePassword(w http.ResponseWriter, r *http.Request){
 	token := r.Form.Get("token")
 
 	pass := r.PostForm.Get("password")
+
+	if len(pass) < 8{
+		err = templates.ExecuteTemplate(w,"new-password.html", struct{
+			Token string
+			Msg   string
+		}{
+			Token: token,
+			Msg: "password must be 8 character long.",
+		})
+		if err != nil{
+			log.Fatal("Unable to render provided template")
+		}
+		return
+	}
+
 	current_time := time.Now().Unix()
 
 	var user_id int
@@ -484,9 +658,11 @@ func ForgotPassword(w http.ResponseWriter, r *http.Request){
 	email := r.PostForm.Get("email")
 	fmt.Println("Email Address:",email)
     var user_id int64
+	var username string
+	var verified bool
 	db.ConnectDB()
 	fmt.Println("Select user_id from User where email = ",email)
-	if err := db.Db.QueryRow("Select user_id from User where email = ?", email).Scan(&user_id); err != nil{
+	if err := db.Db.QueryRow("Select user_id, username, Verified from User where email = ?", email).Scan(&user_id, &username, &verified); err != nil{
 		if err == sql.ErrNoRows{
 			//.. no such email found.
 			fmt.Println("NO such email address found")
@@ -504,6 +680,20 @@ func ForgotPassword(w http.ResponseWriter, r *http.Request){
 			log.Fatal("Unable to scan data")
 		}
 	}
+
+	if !verified{
+		err = templates.ExecuteTemplate(w,"email-prompt.html", struct{
+			Link string
+			Msg  string
+		}{
+			Link: "forgot",
+			Msg : "This user is not verified. Verify first.",
+		})
+			if err != nil{
+				log.Fatal("Unable to render provided template")
+			}
+	}
+
     fmt.Println("The Id for the given email is:",user_id)
 	generated_token := RandStr(24)
 	current_token := time.Now().Unix()
@@ -513,7 +703,7 @@ func ForgotPassword(w http.ResponseWriter, r *http.Request){
 		log.Fatal("Unable to insert token data into database:", err)
 	}
 
-	mail.SendEmail("",generated_token,email,"forgot")
+	mail.SendEmail(username, generated_token,email, "forgot")
 	err = templates.ExecuteTemplate(w,"email-prompt.html", struct{
 		Link string
 		Msg  string

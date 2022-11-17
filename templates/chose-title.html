@@ -57,8 +57,8 @@
         <div>
        <form action = "/updatetitle" method="post">
         <p>Hey {{.Username}}, Choose a title for your Blog</p>
-           <p style = "color:green; margin-top: 2px;">{{.Msg}}</p>
-          <input type="text" placeholder="Your Blog Title" required name="title">
+           <p style = "color:red; margin-top: 2px;">{{.Msg}}</p>
+          <input type="text" placeholder="Your Blog Title" required name="title" value="{{.Title}}">
 
           <button class="SubmitButton" type="submit">Confirm</button> 
        </form>

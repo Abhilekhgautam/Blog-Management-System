@@ -23,10 +23,10 @@
           <p class="Message"></p>
       </div>
       <form action = "/create" method = "post">
-          <p style = "color:red; margin-top: 2px;">{{.}}</p>
-          <div class="InputField"><input type = "text" placeholder = "username"  name = "username" /></div>
-          <div class="InputField"><input type = "text" placeholder = "Email Address"  name = "email" /></div>
-          <div class="InputField"><input type = "password" placeholder = "Password" name = "password" /></div>
+          <p style = "color:{{.Color}}; margin-top: 2px;">{{.Msg}}</p>
+          <div class="InputField"><input type = "text" placeholder = "username"  name = "username" value="{{.Username}}"/></div>
+          <div class="InputField"><input type = "email" placeholder = "Email Address"  name = "email" value="{{.Email}}"/></div>
+          <div class="InputField"><input type = "password" placeholder = "Password" name = "password" value="{{.Password}}"/></div>
 
           <button class="SubmitButton" type="submit">Register Now</button>
       </form>
