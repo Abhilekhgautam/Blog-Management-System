@@ -62,7 +62,13 @@ func GetBlogHome(w http.ResponseWriter, r *http.Request) {
 		// adds element to blogs slice
 		blogs = append(blogs, blog)
 	}
-	err = templates.ExecuteTemplate(w, "home.html", blogs)
+	err = templates.ExecuteTemplate(w, "home.html", struct{
+		Blog []Blog
+		BlogTitle string
+	}{
+		Blog: blogs,
+		BlogTitle: title,
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
